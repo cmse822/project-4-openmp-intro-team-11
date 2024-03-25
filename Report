@@ -1,0 +1,38 @@
+Part 1:
+
+0.) 
+
+The upper two loops can be easily parallelized. There won't be any two threads that will write to the same part of memory in matrix C when the 
+upper two loops are parallelized so there are no critical sections that need atomicity. The third loop can also be parallelized but this will 
+need atomicity since each scalar value computed (i,k) * (k,j) has to be added to the scalar value (i,j) where (i,j) has to be locked so at most
+1 thread modifies it at any given time. 
+
+
+1.) 
+
+Code: mat_mult_openmp.c 
+Compilation: gcc -o prog4_part1 mat_mult_openmp.c -fopenmp
+-> The code  includes the in-serial and multithreaded matrix multiplication computaition. 
+-> The multithreaded matrix multiplication parallelizes the upper two loops. 
+
+2.) 
+For N=1000, in-serial matrix multiplication returns 5.41 on average (5 runs) where as using 1 thread with openmp
+returns 5.53 on average (5 runs). It performs as I expect where openmp 1 thread has a very slight increase (almost 
+negligible) in running time because of set-up costs.
+
+3.) 
+Finished
+
+4.) 
+Check plot_part1_4.png (to do still have to plot the results and conduct analysis) [ to do remaining ] 
+
+5.)
+-> Seed the random number generator using srand with a fixed value srand(value).
+-> For different number of threads, compute the multiplication of the 2 matrices and write the results to separate file.
+-> Check if the results across all the files are the same. 
+
+
+________________________________________________________________________________________________________________________
+
+
+
