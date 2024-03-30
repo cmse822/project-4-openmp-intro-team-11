@@ -11,7 +11,7 @@ int main(int argc, char *argv[]){
 int check_;
 MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &check_);
 
-omp_set_num_threads(1);
+omp_set_num_threads(100);
 double start_,end_;
 
 int rows = 4000;
