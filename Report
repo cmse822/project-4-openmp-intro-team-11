@@ -63,6 +63,7 @@ Compilation: mpicc -fopenmp part_3_code.c -o part_3_code
 -> Verify that the results across are the same by comparing the two 20 by 20 matrices in python.
 
 2.) 
+-> Code run on acm nodes (cluster type amd22). Each acm node contains a maximum of 128 cores.
 
 -> Figures part3_matrix_N=4000.png and part3_matrix_N=1000.png.
 
@@ -99,9 +100,12 @@ mechanisms which probably doesn't have  big effect on performance discrepancy be
 in pure mpi approach. For multiple nodes, the communication costs obviously are the major factor that leads to a high discrepancy in performance between pure mpi and 
 mpi + openmp. 
 
-
-
-
+-> The parallel scaling efficiency for matrices of dimension 4000 is better than the parallel scaling efficiency for matrices of dimension 1000 when examining up to  
+processor count * thread count=700 (7 nodes). For matrix with dimension 1000, the optimal performance is using a single node where using more nodes or parallel instances
+beyond 100 will start degrading performance (computation has been parallelized as much as possible). For matrix with dimension 4000, the performance keeps on improving 
+even with 7 nodes along with an approximately fixed parallel scaling efficiency. We also computed the time it takes to compute the matrix when using 1000 parallel instances
+where we use 10 mpi ranks (on 10 nodes) with 100 threads each and the time returned was 2.3 seconds which is a 1 second improvement than 7 nodes/7 ranks with 100 threads 
+each. So there's still an improvement but the parallel scaling efficiency is beginning to decrease. 
 
 
 
