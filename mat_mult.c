@@ -84,7 +84,7 @@ result = temp3;
 
 
 //srand(time(NULL));
-srand(100); // fix seed for verification test
+srand(3); // fix seed for verification test
   
 for (i=0;i<rows;i++)
 {
