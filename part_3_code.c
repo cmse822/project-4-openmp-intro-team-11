@@ -206,8 +206,18 @@ double ov_time = end_ - start_;
 printf("%f \n",ov_time);
 }
 
+double **temp1 = arr1;
+double **temp2 = arr2;
+double **temp3 = result;
+for(i=0;i<rows;++i,++arr1,++arr2,++result)
+{ free(*arr1); free(*arr2); free(*result); }
+arr1 = temp1;
+arr2 = temp2;
+result = temp3;
 
-
+free(arr1);
+free(arr2);
+free(result);
 MPI_Finalize();
 
 return 0;
