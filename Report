@@ -38,9 +38,9 @@ Plot (log-log scale) found in plot_part1_4.png
 
 5.)
 -> Seed the random number generator using srand with a fixed value=3 srand(3).
--> For different number of threads (1,2, ... , 128), compute the multiplication of 2 matrices (size=1000) whose values
+-> For different number of threads (1,2, ... , 128), compute the multiplication of 2 matrices (size=20) whose values
    were randomly generated and write the results to standard output.
--> Verify that the results across are the same. 
+-> Verify that the results across are the same by comparing the two 20 by 20 matrices in python.
 
 
 ________________________________________________________________________________________________________________________
@@ -53,7 +53,14 @@ ________________________________________________________________________________
 
 Part 3:
 
-1.) Code: part_3_code.c
+1.) 
+Code: part_3_code.c
+Compilation: mpicc -fopenmp part_3_code.c -o part_3_code
+
+-> Seed the random number generator using srand with a fixed value=3 srand(3).
+-> For different number of threads (1,2, ... , 100) and different number of mpi ranks (1,2, ..., 100) compute the multiplication of 2 matrices (size=20) whose values
+   were randomly generated and write the results to standard output.
+-> Verify that the results across are the same by comparing the two 20 by 20 matrices in python.
 
 2.) 
 
