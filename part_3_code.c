@@ -7,15 +7,17 @@
 int main(int argc, char *argv[]){
 
 
+//MPI_Init(&argc, &argv);
 int check_;
 MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &check_);
 
-omp_set_num_threads(10);
+omp_set_num_threads(1);
 double start_,end_;
 
-int rows = 2000;
-int cols = 2000;
+int rows = 4000;
+int cols = 4000;
 
+//allocating memory for rows
 double **arr1 = (double **)malloc(rows*sizeof(double *));
 double **arr2 = (double **)malloc(rows*sizeof(double*));
 double **result = (double **)malloc(rows*sizeof(double *));
@@ -23,11 +25,7 @@ double **result = (double **)malloc(rows*sizeof(double *));
 int i=0;
 int j=0;
 
-/*The 2d matrix is allocated on the heap rather than on the main function's stack. In our heap allocation,
-  only single rows are contigious rather than all the rows being contigious as in 2d arrays
-  allocated on the stack. For that purpose, it's difficult to come up with an mpi custom datatype
-  to transfer more than a single row in one mpi send/recv call. 
-*/
+//allocating memory for columns
 for(;i<rows;i++)
 {
 *(arr1+i) = (double *)malloc(cols*sizeof(double));
@@ -62,44 +60,86 @@ for(j=0;j<cols;j++)
 {
 arr1[i][j] = rand() / (double) RAND_MAX;
 arr2[i][j] = rand() / (double) RAND_MAX;
-//if(j<10 && i==0){ printf("%f \n",arr1[i][j]);}
 result[i][j] = 0;
 }
 }
 }
-for(i=0;i<rows;i++)
-{
-MPI_Bcast(arr2[i],cols,MPI_DOUBLE,0,MPI_COMM_WORLD);
-}
-
-
-
-int rs_ = rows / size_group;
 
 if(u_number==0)
 {
 start_ = MPI_Wtime();
+}
+for(i=0;i<rows;i++)
+{
+//broadcast each row; arr2[i] holds address of initial
+//element of ith row.
+MPI_Bcast(arr2[i],cols,MPI_DOUBLE,0,MPI_COMM_WORLD);
+}
+
+
+int rs_ = rows / size_group;
+int rem_ = rows % size_group;
+
+int st_;
+int ed_;
+
+if(u_number==0)
+{
+
 int cnt_ = rs_;
 
-i=1; // size_group ranks
+if(u_number < rem_)
+{cnt_++;
+}
+
+
+int init_ = cnt_;
+int all_size;
+if(u_number < rem_)
+{all_size = ((size_group-1) * rs_)+rem_-1;}
+else
+{ all_size = ((size_group-1) * rs_); }
+MPI_Request reqst[all_size];
+
+
+st_ = 0;
+ed_ = cnt_;
+
+i=1; 
 while(i<size_group)
 {
 for(j=0;j<rs_;j++)
 {
-MPI_Send(arr1[cnt_],cols,MPI_DOUBLE,i,cnt_,MPI_COMM_WORLD);
+MPI_Isend(arr1[cnt_],cols,MPI_DOUBLE,i,cnt_,MPI_COMM_WORLD,&reqst[cnt_-init_]);
 cnt_++;
 }
+
+if(i < rem_)
+{ 
+MPI_Isend(arr1[cnt_],cols,MPI_DOUBLE,i,cnt_,MPI_COMM_WORLD,&reqst[cnt_-init_]); cnt_++; }
+
 i++;
 }
+
+MPI_Waitall((all_size),reqst,MPI_STATUS_IGNORE);
+
 }
+
+
 
 else
 {
 // receive from 0th rank
 
-int get_ = u_number * rs_; //starting index
+ed_ = rs_;
 
-for(i=get_;i<get_+rs_;i++)
+;
+if(u_number < rem_)
+{st_ = (u_number*rs_) + u_number; ed_ = ed_ + 1; }
+else
+{st_ = (u_number * rs_) + rem_;}
+
+for(i=st_;i<st_+ed_;i++)
 {
 MPI_Recv(arr1[i],cols,MPI_DOUBLE,0,i,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 }
@@ -109,10 +149,9 @@ MPI_Recv(arr1[i],cols,MPI_DOUBLE,0,i,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 
 
 {
-int get_ = u_number * rs_; //starting ind
 int k;
 #pragma omp parallel for collapse(2) private(i,j,k) shared(result,arr1,arr2)
-for (i = get_; i < get_+rs_; ++i)
+for (i = st_; i < st_+ed_; ++i)
 {
   for (j = 0; j < cols; ++j)
     {
@@ -122,56 +161,56 @@ for (i = get_; i < get_+rs_; ++i)
     }
 
 }
+
 }
 
 if(u_number==0)
 {
 int cnt_ = rs_;
 
-i=1; // size_group ranks
+if(u_number < rem_)
+{cnt_++;}
+
+
+i=1; 
 while(i<size_group)
 {
 for(j=0;j<rs_;j++)
 {
-//MPI_Send(arr1[cnt_],cols,MPI_DOUBLE,i,cnt_,MPI_COMM_WORLD);
 MPI_Recv(result[cnt_],cols,MPI_DOUBLE,i,cnt_,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 cnt_++;
 }
+
+if(i < rem_)
+{ MPI_Recv(result[cnt_],cols,MPI_DOUBLE,i,cnt_,MPI_COMM_WORLD,MPI_STATUS_IGNORE); cnt_++; }
 i++;
 }
 }
 else
 {
-int get_ = u_number * rs_; //starting index
 
-for(i=get_;i<get_+rs_;i++)
+for(i=st_;i<st_+ed_;i++)
 {
 MPI_Send(result[i],cols,MPI_DOUBLE,0,i,MPI_COMM_WORLD);
-//MPI_Recv(arr1[i],cols,MPI_DOUBLE,0,i,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 }
 }
 
 MPI_Barrier(MPI_COMM_WORLD);
-//printf("here \n");
 if(u_number==0)
 {
 end_ = MPI_Wtime();
-sleep(3);
-printf("here \n");
 
-for(i=4;i<6;i++)
-{
-for(j=0;j<10;j++)
-{
-printf("%f \n",result[i][j]);
-}
-}
+
+
 double ov_time = end_ - start_;
 printf("%f \n",ov_time);
 }
+
+
 
 MPI_Finalize();
 
 return 0;
 
 }
+
