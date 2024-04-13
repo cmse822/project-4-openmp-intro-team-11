@@ -1,0 +1,13 @@
+#!/bin/bash --login
+########## SBATCH Lines for Resource Request ##########
+#SBATCH --time=00:03:00       # limit of wall clock time - how long the job will run (same as -t)
+#SBATCH --ntasks=7        # number of tasks - how many tasks (nodes) that you require (same as -n)
+#SBATCH --nodes=7
+#SBATCH --ntasks-per-node=7
+#SBATCH --cpus-per-task=100    # number of CPUs (or cores) per task (same as -c)
+#SBATCH --mem-per-cpu=600MB      # memory required per allocated CPU (or core) - amount of memory (in bytes)
+#SBATCH --constraint=acm
+########## Command Lines to Run ##########
+
+#7 mpi ranks each on a different node (total nodes=7). 100 threads per mpi rank (so 100 threads on each node).
+mpirun -np 7 part_3_code.c

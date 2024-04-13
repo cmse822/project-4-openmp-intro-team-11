@@ -1,0 +1,113 @@
+Part 1:
+
+0.) 
+
+The upper two loops can be easily parallelized. There won't be any two threads that will write to the same part of memory in matrix C when the 
+upper two loops are parallelized so there are no critical sections that need atomicity. The third loop can also be parallelized but this will 
+need atomicity since each scalar value computed (i,k) * (k,j) has to be added to the scalar value (i,j) where (i,j) has to be locked so at most
+1 thread modifies it at any given time. 
+
+
+1.) 
+
+Code: mat_mult_openmp.c 
+Compilation: gcc -o prog4_part1 mat_mult_openmp.c -fopenmp
+-> The code  includes the in-serial and multithreaded matrix multiplication computaition. 
+-> The multithreaded matrix multiplication parallelizes the upper two loops. 
+
+2.) 
+For N=1000, in-serial matrix multiplication returns 5.41 on average (5 runs) whereas using 1 thread with openmp
+returns 5.53 on average (5 runs). It performs as we expect where openmp 1 thread has a very slight increase (almost 
+negligible) in running time because of set-up costs.
+
+3.) 
+Plot (log-log scale) found in plot_part1_4.png
+
+4.) 
+Plot (log-log scale) found in plot_part1_4.png
+
+-> The ideal scaling lines which are linear in log-log scale are plotted as dashed lines for every matrix size plot. 
+-> We can observe that for matrix sizes of 1000 and 2000, the plots are nearly linear (computing the best-fit line would
+   return a slope near 1.0) so the parallel speedup looks ideal (parallel scaling efficiency close 1). 
+-> We can observe that for matrix size of 20, increasing the number of threads leads to an increase in running time since 
+   the setup costs of threads and their synchronization dominates the running time cost as compared to how much parallelization 
+   can be done.
+-> For matrix size of 100, we can observe a near ideal speedup for thread counts 2 and 4 (parallel scaling efficiency near 1.0). 
+   However, increasing the number of threads further starts ruining performance (increase in running time) since the computations
+   have been parallelized as much as possible and the setup and synchronization costs of threads now dominate. 
+
+5.)
+-> Seed the random number generator using srand with a fixed value=3 srand(3).
+-> For different number of threads (1,2, ... , 128), compute the multiplication of 2 matrices (size=20) whose values
+   were randomly generated and write the results to standard output.
+-> Verify that the results across are the same by comparing the two 20 by 20 matrices in python.
+
+
+________________________________________________________________________________________________________________________
+
+Part 2:
+
+In part2 directory
+
+________________________________________________________________________________________________________________________
+
+Part 3:
+
+1.) 
+Code: part_3_code.c
+Compilation: mpicc -fopenmp part_3_code.c -o part_3_code
+
+-> Seed the random number generator using srand with a fixed value=3 srand(3).
+-> For different number of threads (1,2, ... , 100) and different number of mpi ranks (1,2, ..., 100) compute the multiplication of 2 matrices (size=20) whose values
+   were randomly generated and write the results to standard output.
+-> Verify that the results across are the same by comparing the two 20 by 20 matrices in python.
+
+2.) 
+-> Code run on acm nodes (cluster type amd22). Each acm node contains a maximum of 128 cores.
+
+-> Figures part3_matrix_N=4000.png and part3_matrix_N=1000.png.
+
+-> For openmp, parallelizing the first loop only (collapse(1)) or parallelizing the initial 2 loops (collapse(2)) distributes
+the same computation work on the threads if the number of threads is less than dimension N of matrix. Parallelizing the first loop
+only using collapse(1) in pure openmp is equivalent (in terms of computation distributed across parallel instances) to the approach in pure mpi where the rows are distributed
+equally across mpi ranks. So, collapse(2) in pure openmp is equivalent (in terms of computation distributed across parallel instances) to the pure mpi approach of distributing
+rows equally across ranks under the condition that the number of parallel instances (threads or mpi ranks) is less than dimension N of the matrix. 
+
+-> This observation allows us to conduct a fair comparison approach between pure mpi and pure openmp and between pure mpi vs. mpi + openmp hybrid. Pure mpi vs. pure openmp is
+only relevant on a single node and as mentioned above, the parallel instances in both approaches compute the same amount of work if the number of instances is less than 
+dimension N of matrix. So, any discrepancy in performance between these two approaches would be due to the setup and communication costs and not how much each parallel instance
+is being utilized (work done by each parallel instance). 
+
+-> In the figures, we observe that pure openmp performs much better than pure mpi (comparison is only relevant on a single node). For a matrix with dimension
+1000, we can observe that having 100 mpi ranks with 1 thread each performs worse than having 1 mpi rank with 100 threads each. Moreover, for 25 mpi ranks with 4 threads each performs
+worse than 4 mpi ranks with 25 threads each. For a matrix with dimension 4000, the same pattern holds. It's important to note that to achieve a fair comparison, the number
+of ranks * the number of threads should be fixed when we are comparing pure mpi vs. pure openmp.
+
+-> For comparing mpi + openmp vs. pure mpi, the insights mentioned above hold as well. The number of ranks * the number of threads should be fixed as well to establish
+a fair comparison. For matrix of dimension 4000 on a single node (processor count*thread count=100), we can observe that the mpi + openmp always performs better than pure mpi.
+Pure mpi having 100 mpi ranks performs the worst out of all the combinations tested (except 50 mpi ranks with 2 threads each which is close enough though). 
+The best performance was pure openmp since it's a single node so obviously 100 threads with 1 mpi rank would perform the best. For "processor count *thread count"=300, 3 nodes
+were used (we assumed a maximum of 100 cores per node ; actual maximum is 128) and we can observe that mpi + openmp performs better than pure mpi which is clearly because
+mpi adds a lot of overhead in terms of communication of nodes whereas thread communication just uses the heap memory. The same applies for "processor count *thread count"=400 and
+"processor count*thread count=700". 
+
+-> Note that for processor count * thread count = 100, 1 node was utilized whereas for "processor count * thread count"=300, 3 nodes were utilized and ranks were distributed
+equally across the nodes. The plots clearly show that having 1 mpi rank per node and maximum number of threads used in each node is the best approach to take. If a problem is 
+small enough like the matrix of 1000 dimensions, then using a single node suffices which means that one can use pure openmp.
+
+-> pure openmp performs better than the pure mpi approach on a single node. Pure openmp uses the heap for communication between threads whereas mpi uses shared memory 
+mechanisms which probably doesn't have  big effect on performance discrepancy between the two approaches.  However, the forking and copying of memory adds setup costs 
+in pure mpi approach. For multiple nodes, the communication costs obviously are the major factor that leads to a high discrepancy in performance between pure mpi and 
+mpi + openmp. 
+
+-> The parallel scaling efficiency for matrices of dimension 4000 is better than the parallel scaling efficiency for matrices of dimension 1000 when examining up to  
+processor count * thread count=700 (7 nodes). For matrix with dimension 1000, the optimal performance is using a single node where using more nodes or parallel instances
+beyond 100 will start degrading performance (computation has been parallelized as much as possible). For matrix with dimension 4000, the performance keeps on improving 
+even with 7 nodes along with an approximately fixed parallel scaling efficiency. We also computed the time it takes to compute the matrix when using 1000 parallel instances
+where we use 10 mpi ranks (on 10 nodes) with 100 threads each and the time returned was 2.3 seconds which is a 1 second improvement than 7 nodes/7 ranks with 100 threads 
+each. So there's still an improvement but the parallel scaling efficiency is beginning to decrease. 
+
+
+
+
+
